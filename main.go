@@ -1,3 +1,4 @@
+// main.go
 package main
 
 import (
@@ -97,8 +98,10 @@ func main() {
 
 						// 根据环境选择 job 名称
 						localJobName := jobName
-						// 调整逻辑：检查 config.yaml 中是否存在对应的 job
-						if env == "eks-yfb" && !strings.HasSuffix(jobName, "_pre") {
+						// 对于 check_image_pre，始终使用原 job 名称，不判断 pre
+						if jobName == "check_image_pre" {
+							localJobName = jobName
+						} else if env == "eks-yfb" && !strings.HasSuffix(jobName, "_pre") {
 							localJobName = jobName + "_pre"
 						} else if env != "eks-yfb" {
 							// 检查是否存在对应的非 _pre job
