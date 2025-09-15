@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -96,13 +95,27 @@ func main() {
 						}
 						envParams["environments"] = env
 
-						/*/ 根据环境选择 job 名称
+						// 根据环境选择 job 名称
 						localJobName := jobName
+						// 调整逻辑：检查 config.yaml 中是否存在对应的 job
 						if env == "eks-yfb" && !strings.HasSuffix(jobName, "_pre") {
 							localJobName = jobName + "_pre"
-						} else if env != "eks-yfb" && strings.HasSuffix(jobName, "_pre") {
-							localJobName = strings.TrimSuffix(jobName, "_pre")
-						}*/
+						} else if env != "eks-yfb" {
+							// 检查是否存在对应的非 _pre job
+							nonPreJobName := strings.TrimSuffix(jobName, "_pre")
+							if _, exists := tools.ConfigData.Jobs[nonPreJobName]; exists {
+								localJobName = nonPreJobName
+							} else {
+								// 如果非 _pre job 不存在，保持原 job 名称
+								localJobName = jobName
+							}
+						}
+
+						// 验证 localJobName 是否在 config.yaml 中
+						if _, exists := tools.ConfigData.Jobs[localJobName]; !exists {
+							errors <- fmt.Sprintf("环境 %s: Jenkins Job '%s' 不存在，请检查配置", env, localJobName)
+							return
+						}
 
 						// 处理特殊 job（如 games_cocos 和 gaming_manager_pre）
 						if localJobName == "games_cocos" {
@@ -134,9 +147,11 @@ func main() {
 						}
 
 						// 触发 Jenkins Job
+						jobURL, _ := tools.BuildJenkinsURL(tools.ConfigData.Jenkins.BaseURL, localJobName, envParams)
+						log.Printf("环境 %s: 触发 Jenkins Job '%s'，URL: %s", env, localJobName, jobURL)
 						statusCode, location := tools.TriggerJenkinsJob(localJobName, envParams, client)
 						if statusCode != 201 {
-							errors <- fmt.Sprintf("环境 %s: 触发 Jenkins Job '%s' 失败，状态码：%d", env, localJobName, statusCode)
+							errors <- fmt.Sprintf("环境 %s: 触发 Jenkins Job '%s' 失败，状态码：%d，URL: %s", env, localJobName, statusCode, jobURL)
 							return
 						}
 
