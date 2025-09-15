@@ -96,13 +96,13 @@ func main() {
 						}
 						envParams["environments"] = env
 
-						// 根据环境选择 job 名称
+						/*/ 根据环境选择 job 名称
 						localJobName := jobName
 						if env == "eks-yfb" && !strings.HasSuffix(jobName, "_pre") {
 							localJobName = jobName + "_pre"
 						} else if env != "eks-yfb" && strings.HasSuffix(jobName, "_pre") {
 							localJobName = strings.TrimSuffix(jobName, "_pre")
-						}
+						}*/
 
 						// 处理特殊 job（如 games_cocos 和 gaming_manager_pre）
 						if localJobName == "games_cocos" {
