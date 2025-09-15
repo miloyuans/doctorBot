@@ -1,0 +1,109 @@
+jenkins:
+  base_url: "https://j.iggame.work"
+  username: "admin"
+  token: "1"
+
+base:
+  admin: "1"
+  private: true  #是否禁止私聊 禁止私聊并限制群组  false:不禁止私聊  开放群组
+
+
+telegram:
+  #token: "7742926487:AAH3ilhaKielBi1D9wagH-9cdpRk3XZb6uY"
+  token: ""
+  allowed_group_ids:
+
+jobs:
+  check_image_pre:
+    params:
+      - "environments"
+      - "projects"
+      - "TAG"
+    help: |
+      示例：该命令适用于pre环境的升级
+      /check_image_pre environments=eks-pre,eks-yfb projects=international-game TAG=v1.0
+  gaming_website_pre:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：该命令适用于pre环境的升级
+      /gaming_website_pre environments=eks-pre,eks-yfb projects=gaming-website profile=v1.0
+  gaming_manager_pre:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：该命令适用于pre环境的升级
+      /gaming_manager_pre environments=eks-pre,eks-yfb projects=gaming-manager profile=v1.0
+  gaming_login_pre:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：该命令适用于pre环境的升级
+      /gaming_login_pre environments=eks-pre,eks-yfb projects=gaming-login profile=v1.0
+  check_image:
+    params:
+      - "environments"
+      - "projects"
+      - "TAG"
+    help: |
+      示例：
+      /check_image environments=eks-pre,eks-test projects=international-game TAG=v1.0
+  gaming_website:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：
+      /gaming_website environments=eks-pre,eks-test projects=gaming-website profile=v1.0
+  gaming_manager:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：
+      /gaming_manager environments=eks-pre,eks-test projects=gaming-manager profile=v1.0
+  gaming_login:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：
+      /gaming_login environments=eks-pre,eks-test projects=gaming-login profile=v1.0
+  gaming_国际盘_測試_imgix清缓_dev:
+    params:
+      - "folders"
+    help: |
+      还没弄
+  games_cocos:
+    params:
+      - "environments"
+      - "projects"
+      - "TAG"
+    help: |
+      示例：
+      /games_cocos environments=eks-pre,eks-test projects=wingsuit TAG=master
+  gaming_icon:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：
+      /gaming_icon environments=eks-pre,eks-test projects=gaming-icon profile=S241125
+  gaming_icon_pre:
+    params:
+      - "environments"
+      - "projects"
+      - "profile"
+    help: |
+      示例：该命令适用于pre环境的升级
+      /gaming_icon_pre environments=eks-pre,eks-yfb projects=gaming-icon profile=S241125
