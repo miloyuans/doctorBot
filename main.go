@@ -80,6 +80,26 @@ func main() {
 					environments = []string{fmt.Sprintf("%v", params["environments"])}
 				}
 
+				var tag string
+				var tagErr error
+				// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，执行一次镜像检测
+				if jobName == "gaming_manager_pre" && params["projects"] == "gaming-manager" {
+					ip := "13.251.90.38"
+					port := "8000"
+					imageName := "gaming-manager"
+					branchName := fmt.Sprintf("%v", params["profile"])
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("正在从 %s:%s 获取 %s:%s 的镜像信息", ip, port, imageName, branchName))
+					bot.Send(msg)
+					tag, tagErr = tools.TriggerBuild(ip, port, imageName, branchName)
+					if tagErr != nil {
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("获取镜像失败: %v，检查分支 %s 是否正确", tagErr, branchName))
+						bot.Send(msg)
+						return
+					}
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("已获取到镜像信息 %s", tag))
+					bot.Send(msg)
+				}
+
 				var wg sync.WaitGroup
 				results := make(chan string, len(environments))
 				errors := make(chan string, len(environments))
@@ -99,20 +119,8 @@ func main() {
 						// 使用原始 job 名称
 						localJobName := jobName
 
-						// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，执行镜像检测并使用 gaming_manager_pre_push
+						// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，使用 gaming_manager_pre_push
 						if jobName == "gaming_manager_pre" && envParams["projects"] == "gaming-manager" {
-							ip := "13.251.90.38"
-							port := "8000"
-							imageName := "gaming-manager"
-							branchName := fmt.Sprintf("%v", envParams["profile"])
-							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 正在从 %s:%s 获取 %s:%s 的镜像信息", env, ip, port, imageName, branchName))
-							bot.Send(msg)
-							tag, err := tools.TriggerBuild(ip, port, imageName, branchName)
-							if err != nil {
-								errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v，检查分支 %s 是否正确", env, err, branchName)
-								return
-							}
-							results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
 							localJobName = "gaming_manager_pre_push"
 							envParams["profile"] = tag
 						}
