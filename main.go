@@ -89,28 +89,37 @@ func main() {
 					go func(env string) {
 						defer wg.Done()
 
-						// 动态调整 job 名称和参数
+						// 复制参数并设置当前环境
 						envParams := make(map[string]interface{})
 						for k, v := range params {
 							envParams[k] = v
 						}
 						envParams["environments"] = env
 
-						// 根据环境选择 job 名称
+						// 使用原始 job 名称
 						localJobName := jobName
-						// 对于 check_image_pre，始终使用原 job 名称，不判断 pre
-						if jobName == "check_image_pre" {
-							localJobName = jobName
-						} else if env == "eks-yfb" && !strings.HasSuffix(jobName, "_pre") {
-							localJobName = jobName + "_pre"
-						} else if env != "eks-yfb" {
-							// 检查是否存在对应的非 _pre job
-							nonPreJobName := strings.TrimSuffix(jobName, "_pre")
-							if _, exists := tools.ConfigData.Jobs[nonPreJobName]; exists {
-								localJobName = nonPreJobName
+
+						// 如果命令是 gaming_manager 或 gaming_manager_pre 且 projects=gaming-manager，强制使用 gaming_manager_pre_push
+						if (jobName == "gaming_manager" || jobName == "gaming_manager_pre") && envParams["projects"] == "gaming-manager" {
+							// 对于 gaming_manager，执行镜像检测
+							if jobName == "gaming_manager" {
+								ip := "13.251.90.38"
+								port := "8000"
+								imageName := "gaming-manager"
+								branchName := fmt.Sprintf("%v", envParams["profile"])
+								msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 正在从 %s:%s 获取 %s:%s 的镜像信息", env, ip, port, imageName, branchName))
+								bot.Send(msg)
+								tag, err := tools.TriggerBuild(ip, port, imageName, branchName)
+								if err != nil {
+									errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v，检查分支 %s 是否正确", env, err, branchName)
+									return
+								}
+								results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
+								localJobName = "gaming_manager_pre_push"
+								envParams["profile"] = tag
 							} else {
-								// 如果非 _pre job 不存在，保持原 job 名称
-								localJobName = jobName
+								// 对于 gaming_manager_pre，直接使用 gaming_manager_pre_push
+								localJobName = "gaming_manager_pre_push"
 							}
 						}
 
@@ -126,9 +135,11 @@ func main() {
 							port := "8000"
 							imageName := "gaming-cocos"
 							branchName := fmt.Sprintf("%v", envParams["TAG"])
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 正在从 %s:%s 获取 %s:%s 的镜像信息", env, ip, port, imageName, branchName))
+							bot.Send(msg)
 							tag, err := tools.TriggerBuild(ip, port, imageName, branchName)
 							if err != nil {
-								errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v", env, err)
+								errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v，检查分支 %s 是否正确", env, err, branchName)
 								return
 							}
 							results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
@@ -139,9 +150,11 @@ func main() {
 							port := "8000"
 							imageName := "gaming-manager"
 							branchName := fmt.Sprintf("%v", envParams["profile"])
+							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 正在从 %s:%s 获取 %s:%s 的镜像信息", env, ip, port, imageName, branchName))
+							bot.Send(msg)
 							tag, err := tools.TriggerBuild(ip, port, imageName, branchName)
 							if err != nil {
-								errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v", env, err)
+								errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v，检查分支 %s 是否正确", env, err, branchName)
 								return
 							}
 							results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
@@ -163,7 +176,7 @@ func main() {
 
 						buildNumber := tools.GetItemInfo(location, client)
 						if buildNumber > 0 {
-							results <- fmt.Sprintf("环境 %s: 构建编号：%d", env, buildNumber)
+							results <- fmt.Sprintf("环境 %s: 构建编号：%d   根据您所在的群,构建结果由不同的机器人通知", env, buildNumber)
 						} else {
 							errors <- fmt.Sprintf("环境 %s: 获取构建编号失败", env)
 						}
