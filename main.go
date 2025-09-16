@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"sync"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -100,69 +100,51 @@ func main() {
 					bot.Send(msg)
 				}
 
-				var wg sync.WaitGroup
-				results := make(chan string, len(environments))
-				errors := make(chan string, len(environments))
-
-				for _, env := range environments {
-					wg.Add(1)
-					go func(env string) {
-						defer wg.Done()
-
-						// 复制参数并设置当前环境
-						envParams := make(map[string]interface{})
-						for k, v := range params {
-							envParams[k] = v
-						}
-						envParams["environments"] = env
-
-						// 使用原始 job 名称
-						localJobName := jobName
-
-						// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，使用 gaming_manager_pre_push
-						if jobName == "gaming_manager_pre" && envParams["projects"] == "gaming-manager" {
-							localJobName = "gaming_manager_pre_push"
-							if tag != "" {
-								envParams["profile"] = tag
-							}
-						}
-
-						// 触发 Jenkins Job
-						jobURL, _ := tools.BuildJenkinsURL(tools.ConfigData.Jenkins.BaseURL, localJobName, envParams)
-						log.Printf("环境 %s: 触发 Jenkins Job '%s'，URL: %s", env, localJobName, jobURL)
-						statusCode, location := tools.TriggerJenkinsJob(localJobName, envParams, client)
-						if statusCode != 201 {
-							errors <- fmt.Sprintf("环境 %s: 触发 Jenkins Job '%s' 失败，状态码：%d，URL: %s", env, localJobName, statusCode, jobURL)
-							return
-						}
-
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 触发 Jenkins:'%s'，等待分配构建编号", env, localJobName))
-						bot.Send(msg)
-
-						buildNumber := tools.GetItemInfo(location, client)
-						if buildNumber > 0 {
-							results <- fmt.Sprintf("环境 %s: 构建编号：%d   根据您所在的群,构建结果由不同的机器人通知", env, buildNumber)
-						} else {
-							errors <- fmt.Sprintf("环境 %s: 获取构建编号失败", env)
-						}
-					}(env)
-				}
-
-				// 等待所有任务完成
-				go func() {
-					wg.Wait()
-					close(results)
-					close(errors)
-				}()
-
-				// 收集结果
 				var resultMessages []string
 				var errorMessages []string
-				for result := range results {
-					resultMessages = append(resultMessages, result)
-				}
-				for errMsg := range errors {
-					errorMessages = append(errorMessages, errMsg)
+
+				for i, env := range environments {
+					// 复制参数并设置当前环境
+					envParams := make(map[string]interface{})
+					for k, v := range params {
+						envParams[k] = v
+					}
+					envParams["environments"] = env
+
+					// 使用原始 job 名称
+					localJobName := jobName
+
+					// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，使用 gaming_manager_pre_push
+					if jobName == "gaming_manager_pre" && envParams["projects"] == "gaming-manager" {
+						localJobName = "gaming_manager_pre_push"
+						if tag != "" {
+							envParams["profile"] = tag
+						}
+					}
+
+					// 触发 Jenkins Job
+					jobURL, _ := tools.BuildJenkinsURL(tools.ConfigData.Jenkins.BaseURL, localJobName, envParams)
+					log.Printf("环境 %s: 触发 Jenkins Job '%s'，URL: %s", env, localJobName, jobURL)
+					statusCode, location := tools.TriggerJenkinsJob(localJobName, envParams, client)
+					if statusCode != 201 {
+						errorMessages = append(errorMessages, fmt.Sprintf("环境 %s: 触发 Jenkins Job '%s' 失败，状态码：%d，URL: %s", env, localJobName, statusCode, jobURL))
+						continue
+					}
+
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 触发 Jenkins:'%s'，等待分配构建编号", env, localJobName))
+					bot.Send(msg)
+
+					buildNumber := tools.GetItemInfo(location, client)
+					if buildNumber > 0 {
+						resultMessages = append(resultMessages, fmt.Sprintf("环境 %s: 构建编号：%d   根据您所在的群,构建结果由不同的机器人通知", env, buildNumber))
+					} else {
+						errorMessages = append(errorMessages, fmt.Sprintf("环境 %s: 获取构建编号失败", env))
+					}
+
+					// 等待3秒再触发下一个环境
+					if i < len(environments)-1 {
+						time.Sleep(3 * time.Second)
+					}
 				}
 
 				// 发送结果
