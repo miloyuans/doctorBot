@@ -25,6 +25,7 @@ type Config struct {
 		Token           string  `yaml:"token"`
 		AllowedGroupIDs []int64 `yaml:"allowed_group_ids"`
 	} `yaml:"telegram"`
+	ValidEnvironments []string `yaml:"valid_environments"`
 	Jobs map[string]struct {
 		Params []string `yaml:"params"`
 		Help   string   `yaml:"help"`
@@ -56,6 +57,7 @@ func GetClient(jenkinsUsername string, jenkinsToken string) *resty.Client {
 	client.SetDebug(false)
 	return client
 }
+
 func GetBot(telegramToken string) *tgbotapi.BotAPI {
 	bot, err := tgbotapi.NewBotAPI(telegramToken)
 	if err != nil {

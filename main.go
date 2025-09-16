@@ -80,6 +80,26 @@ func main() {
 					environments = []string{fmt.Sprintf("%v", params["environments"])}
 				}
 
+				// 验证环境是否合法
+				var invalidEnvs []string
+				for _, env := range environments {
+					isValid := false
+					for _, validEnv := range tools.ConfigData.ValidEnvironments {
+						if env == validEnv {
+							isValid = true
+							break
+						}
+					}
+					if !isValid {
+						invalidEnvs = append(invalidEnvs, env)
+					}
+				}
+				if len(invalidEnvs) > 0 {
+					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s 不存在，是否输入错误或者联系运维配置环境", strings.Join(invalidEnvs, ", ")))
+					bot.Send(msg)
+					continue
+				}
+
 				var tag string
 				var tagErr error
 				// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，执行一次镜像检测
@@ -161,6 +181,8 @@ func main() {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "请从对话窗口直接输入 / 查看命令")
 				bot.Send(msg)
 			} else if message == "/menu" {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "选择功能：")
+				bot.Send(msg)
 				menu.SendMainMenu(bot, update.Message.Chat.ID)
 			} else {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "没有这个命令")
