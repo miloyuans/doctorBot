@@ -122,7 +122,9 @@ func main() {
 						// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，使用 gaming_manager_pre_push
 						if jobName == "gaming_manager_pre" && envParams["projects"] == "gaming-manager" {
 							localJobName = "gaming_manager_pre_push"
-							envParams["profile"] = tag
+							if tag != "" {
+								envParams["profile"] = tag
+							}
 						}
 
 						// 触发 Jenkins Job
