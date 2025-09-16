@@ -57,6 +57,7 @@ func main() {
 				jobName, params := tools.ParseCommand(message, update.Message.Chat.ID)
 				log.Println("参数:", params)
 
+				// 验证原始 jobName 是否在 config.yaml 中
 				jobConfig, ok := tools.ConfigData.Jobs[jobName]
 				if !ok {
 					msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("不支持的命令 '%s'，请检查命令或使用 /help 查看支持的 Job。", jobName))
@@ -114,12 +115,6 @@ func main() {
 							results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
 							localJobName = "gaming_manager_pre_push"
 							envParams["profile"] = tag
-						}
-
-						// 验证 localJobName 是否在 config.yaml 中
-						if _, exists := tools.ConfigData.Jobs[localJobName]; !exists {
-							errors <- fmt.Sprintf("环境 %s: Jenkins Job '%s' 不存在，请检查配置", env, localJobName)
-							return
 						}
 
 						// 触发 Jenkins Job
