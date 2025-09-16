@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -99,53 +98,8 @@ func main() {
 						// 使用原始 job 名称
 						localJobName := jobName
 
-						// 如果命令是 gaming_manager 或 gaming_manager_pre 且 projects=gaming-manager，强制使用 gaming_manager_pre_push
-						if (jobName == "gaming_manager" || jobName == "gaming_manager_pre") && envParams["projects"] == "gaming-manager" {
-							// 对于 gaming_manager，执行镜像检测
-							if jobName == "gaming_manager" {
-								ip := "13.251.90.38"
-								port := "8000"
-								imageName := "gaming-manager"
-								branchName := fmt.Sprintf("%v", envParams["profile"])
-								msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 正在从 %s:%s 获取 %s:%s 的镜像信息", env, ip, port, imageName, branchName))
-								bot.Send(msg)
-								tag, err := tools.TriggerBuild(ip, port, imageName, branchName)
-								if err != nil {
-									errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v，检查分支 %s 是否正确", env, err, branchName)
-									return
-								}
-								results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
-								localJobName = "gaming_manager_pre_push"
-								envParams["profile"] = tag
-							} else {
-								// 对于 gaming_manager_pre，直接使用 gaming_manager_pre_push
-								localJobName = "gaming_manager_pre_push"
-							}
-						}
-
-						// 验证 localJobName 是否在 config.yaml 中
-						if _, exists := tools.ConfigData.Jobs[localJobName]; !exists {
-							errors <- fmt.Sprintf("环境 %s: Jenkins Job '%s' 不存在，请检查配置", env, localJobName)
-							return
-						}
-
-						// 处理特殊 job（如 games_cocos 和 gaming_manager_pre）
-						if localJobName == "games_cocos" {
-							ip := "52.74.65.246"
-							port := "8000"
-							imageName := "gaming-cocos"
-							branchName := fmt.Sprintf("%v", envParams["TAG"])
-							msg := tgbotapi.NewMessage(update.Message.Chat.ID, fmt.Sprintf("环境 %s: 正在从 %s:%s 获取 %s:%s 的镜像信息", env, ip, port, imageName, branchName))
-							bot.Send(msg)
-							tag, err := tools.TriggerBuild(ip, port, imageName, branchName)
-							if err != nil {
-								errors <- fmt.Sprintf("环境 %s: 获取镜像失败: %v，检查分支 %s 是否正确", env, err, branchName)
-								return
-							}
-							results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
-							localJobName = "games_cocos_push"
-							envParams["TAG"] = tag
-						} else if localJobName == "gaming_manager_pre" {
+						// 如果命令是 gaming_manager_pre 且 projects=gaming-manager，执行镜像检测并使用 gaming_manager_pre_push
+						if jobName == "gaming_manager_pre" && envParams["projects"] == "gaming-manager" {
 							ip := "13.251.90.38"
 							port := "8000"
 							imageName := "gaming-manager"
@@ -160,6 +114,12 @@ func main() {
 							results <- fmt.Sprintf("环境 %s: 已获取到镜像信息 %s", env, tag)
 							localJobName = "gaming_manager_pre_push"
 							envParams["profile"] = tag
+						}
+
+						// 验证 localJobName 是否在 config.yaml 中
+						if _, exists := tools.ConfigData.Jobs[localJobName]; !exists {
+							errors <- fmt.Sprintf("环境 %s: Jenkins Job '%s' 不存在，请检查配置", env, localJobName)
+							return
 						}
 
 						// 触发 Jenkins Job
